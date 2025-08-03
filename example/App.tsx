@@ -1,73 +1,68 @@
-import { useEvent } from 'expo';
-import ExpoiOSToolKitModule, { ExpoiOSToolKitModuleView } from 'expo-ios-tookit';
-import { Button, SafeAreaView, ScrollView, Text, View } from 'react-native';
+import { Text, SafeAreaView, StyleSheet, Appearance } from "react-native";
+import * as React from "react";
+import {
+  ToolKitView,
+  conigureTips,
+  resetTips,
+  TipDisplayFrequency,
+} from "expo-ios-tookit";
+import * as SplashScreen from "expo-splash-screen";
+Appearance.setColorScheme("dark");
 
-export default function App() {
-  const onChangePayload = useEvent(ExpoiOSToolKitModule, 'onChange');
+// SplashScreen.preventAutoHideAsync();
+
+export default function App<T>() {
+  React.useEffect(() => {
+    async function setupiOSTips() {
+      await resetTips();
+      return await conigureTips();
+    }
+    setupiOSTips();
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.container}>
-        <Text style={styles.header}>Module API Example</Text>
-        <Group name="Constants">
-          <Text>{ExpoiOSToolKitModule.PI}</Text>
-        </Group>
-        <Group name="Functions">
-          <Text>{ExpoiOSToolKitModule.hello()}</Text>
-        </Group>
-        <Group name="Async functions">
-          <Button
-            title="Set value"
-            onPress={async () => {
-              await ExpoiOSToolKitModule.setValueAsync('Hello from JS!');
-            }}
-          />
-        </Group>
-        <Group name="Events">
-          <Text>{onChangePayload?.value}</Text>
-        </Group>
-        <Group name="Views">
-          <ExpoiOSToolKitModuleView
-            url="https://www.example.com"
-            onLoad={({ nativeEvent: { url } }) => console.log(`Loaded: ${url}`)}
-            style={styles.view}
-          />
-        </Group>
-      </ScrollView>
+      <ToolKitView
+        style={{
+          width: 200,
+          height: 40,
+          backgroundColor: "purple",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+        onActionPress={(_) => console.log("action click", _.actionId)}
+        tooltip={{
+          id: "welcomeTip",
+          title: { text: "Welcome!", bold: true, size: 18 },
+          description: {
+            text: "Tap here to get started.",
+            size: 20,
+            foregroundColor: "",
+          },
+          image: {
+            systemName: "sparkle",
+          },
+          actions: [
+            { id: "gotIt", title: "Got it" },
+            { id: "help", title: "Why this?" },
+          ],
+        }}
+      >
+        <Text style={{ color: "white", fontSize: 20 }}>Hallo</Text>
+      </ToolKitView>
     </SafeAreaView>
   );
 }
 
-function Group(props: { name: string; children: React.ReactNode }) {
-  return (
-    <View style={styles.group}>
-      <Text style={styles.groupHeader}>{props.name}</Text>
-      {props.children}
-    </View>
-  );
-}
-
-const styles = {
-  header: {
-    fontSize: 30,
-    margin: 20,
-  },
-  groupHeader: {
-    fontSize: 20,
-    marginBottom: 20,
-  },
-  group: {
-    margin: 20,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 20,
-  },
+const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#eee',
+    justifyContent: "center",
+    alignItems: "center",
   },
-  view: {
-    flex: 1,
-    height: 200,
+  text: {
+    fontWeight: "bold",
+    fontSize: 20,
+    color: "#ffffff",
   },
-};
+});

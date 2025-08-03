@@ -1,9 +1,6 @@
 {
-  "platforms": ["apple", "android", "web"],
+  "platforms": ["apple"],
   "apple": {
     "modules": ["ExpoiOSToolKitModule"]
-  },
-  "android": {
-    "modules": ["expo.modules.iostookit.ExpoiOSToolKitModule"]
   }
 }
