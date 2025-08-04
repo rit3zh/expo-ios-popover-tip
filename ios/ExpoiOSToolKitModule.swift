@@ -8,8 +8,13 @@ public class ExpoiOSToolKitModule: Module {
     View(ExpoToolKitView.self)
       
       AsyncFunction("configureTips") {
+          
           if #available(iOS 17.0, *) {
-              try? Tips.configure()
+              
+              try? Tips.configure([
+                Tips.ConfigurationOption.displayFrequency(.immediate), // Show immediately
+                Tips.ConfigurationOption.datastoreLocation(.applicationDefault)
+              ])
           }
       }
 

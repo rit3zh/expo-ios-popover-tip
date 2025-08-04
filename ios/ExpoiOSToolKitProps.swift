@@ -11,4 +11,5 @@ import SwiftUI
 class ExpoToolKitProps: ExpoSwiftUI.ViewProps {
     @Field var tooltip: [String: Any] = [:]
     var onActionPress = EventDispatcher()
+    var onTipDismiss = EventDispatcher()
 }

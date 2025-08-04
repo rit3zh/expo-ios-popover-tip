@@ -1,24 +1,34 @@
 import * as React from "react";
+import { View, StyleSheet } from "react-native";
 import { NativeToolKitView } from "./view/NativeView.ios";
-import { StyleProp, ViewStyle } from "react-native";
-import { ToolTip } from "./types/tip";
-import { Actions } from "./types/actions";
-interface ToolKitViewProps {
-  style?: StyleProp<ViewStyle>;
-  children: React.ReactNode;
-  tooltip?: ToolTip;
-  onActionPress?: (actions: Actions) => any;
-}
 
-export function ToolKitView(props: ToolKitViewProps): React.ReactElement {
+import { ToolKitViewProps } from "./types/props";
+
+export function ToolTipPopoverView(
+  props: ToolKitViewProps
+): React.ReactElement {
   return (
     <NativeToolKitView
       {...props}
       onActionPress={(event: any) => {
-        if (props.onActionPress) {
-          props.onActionPress(event?.nativeEvent);
-        }
+        props.onActionPress?.(event?.nativeEvent);
       }}
-    />
+      onTipDismiss={(e: any) => {
+        props.onTipDismiss?.(e.nativeEvent);
+      }}
+      style={[styles.wrapper, props.style]}
+    >
+      <View style={styles.container}>{props.children}</View>
+    </NativeToolKitView>
   );
 }
+
+const styles = StyleSheet.create({
+  wrapper: {
+    alignSelf: "flex-start",
+  },
+  container: {
+    alignSelf: "flex-start",
+    flexShrink: 1,
+  },
+});

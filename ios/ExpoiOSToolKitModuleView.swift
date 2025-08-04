@@ -71,6 +71,7 @@ struct DynamicTip: Tip, Identifiable {
 struct ExpoToolKitView: ExpoSwiftUI.View, ExpoSwiftUI.WithHostingView {
   let props: ExpoToolKitProps
     
+    
   var body: some View {
     Group {
       if #available(iOS 17.0, *) {
@@ -86,28 +87,50 @@ struct ExpoToolKitView: ExpoSwiftUI.View, ExpoSwiftUI.WithHostingView {
 private struct TipContainerView: ExpoSwiftUIView {
   let props: ExpoToolKitProps
   @State private var currentTip: DynamicTip?
-  
+  @State private var isTipPresented: Bool = true // track presentation state
+
   var body: some View {
     let eventDispatcher = props.onActionPress
+    let tipEventDispatcher = props.onTipDismiss
     let tipId = props.tooltip["id"] as? String ?? ""
-    
+
     let tip = DynamicTip(data: props.tooltip) { actionId in
-      // Dismiss the tip first
       Task { @MainActor in
         currentTip?.invalidate(reason: .actionPerformed)
       }
-      
-      // Then emit the event
+
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+        currentTip = DynamicTip(data: props.tooltip, actionHandler: { id in
+          tipEventDispatcher([
+            "actionId": id,
+            "tipId": tipId
+          ])
+        })
+      }
+
       eventDispatcher([
         "actionId": actionId,
         "tipId": tipId
       ])
     }
-    
-    Children()
-      .popoverTip(tip)
-      .onAppear {
-        currentTip = tip
+
+      if #available(iOS 26.0, *) {
+          Children()
+              .popoverTip(currentTip ?? tip, isPresented: $isTipPresented)
+              .onChange(of: isTipPresented) { newValue in
+                  if newValue == false {
+                      tipEventDispatcher([
+                        "event": "tipDismissed",
+                        "tipId": tipId
+                      ])
+                  }
+              }
+              .onAppear {
+                  currentTip = tip
+                  isTipPresented = true
+              }
+      } else {
+          // Fallback on earlier versions
       }
   }
 }
