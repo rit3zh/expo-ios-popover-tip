@@ -36,10 +36,6 @@ cd ios && pod install
 
 ---
 
-Great — here's how you can add a **Getting Started** section in your README that includes the `resetTips()` and `configureTips()` setup logic using `useEffect`. I’ll also include a short explanation for clarity:
-
----
-
 ## 🧰 Getting Started (TipKit Setup)
 
 Before using tooltips, you must reset and configure them on app launch to ensure consistent native behavior.
@@ -273,11 +269,7 @@ You can customize:
 
 ## 🎥 Demo
 
-
-
 https://github.com/user-attachments/assets/c2b0e8cf-0814-40f2-b36a-66825313a6df
-
-
 
 ---
 
