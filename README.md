@@ -273,7 +273,11 @@ You can customize:
 
 ## 🎥 Demo
 
-[https://github.com/user-attachments/assets/a08878fb-6a90-474b-8f21-1b46fe990177](https://github.com/user-attachments/assets/a08878fb-6a90-474b-8f21-1b46fe990177)
+
+
+https://github.com/user-attachments/assets/c2b0e8cf-0814-40f2-b36a-66825313a6df
+
+
 
 ---
 
