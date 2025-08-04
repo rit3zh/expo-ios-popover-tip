@@ -255,7 +255,7 @@ You can customize:
 - ❌ Android (not supported)
 
 > ⚠️ **Requires iOS 17+** for `TipKit` support
-> ⚠️ **iOS 26 + Xcode 15.4+ beta** required for **multiple popover tips**
+> ⚠️ **iOS 26 + Xcode 26 beta** required for **multiple popover tips**
 
 ---
 
