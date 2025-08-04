@@ -195,7 +195,7 @@ export default function App() {
 }
 ```
 
-> ⚠️ **Requires iOS 26 + Xcode 15.4 beta** for displaying multiple popover tips in one session.
+> ⚠️ **Requires iOS 26 + Xcode 26 beta** for displaying multiple popover tips in one session.
 > Otherwise, only one tip will be shown by iOS system constraints.
 
 ---
