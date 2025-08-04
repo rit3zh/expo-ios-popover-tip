@@ -12,7 +12,11 @@ import {
 import * as React from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import { SFSymbol, SymbolView } from "expo-symbols";
-import { ToolTipPopoverView, configureTips, resetTips } from "expo-ios-tookit";
+import {
+  ToolTipPopoverView,
+  configureTips,
+  resetTips,
+} from "expo-ios-popover-tip";
 import { AnimatedMeshGradient } from "expo-ios-mesh-gradient";
 import { ExpoLiquidGlassView, LiquidGlassType } from "expo-liquid-glass-view";
 

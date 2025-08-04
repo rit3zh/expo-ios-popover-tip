@@ -3,8 +3,8 @@
   "compilerOptions": {
     "strict": true,
     "paths": {
-      "expo-ios-tookit": ["../src/index"],
-      "expo-ios-tookit/*": ["../src/*"]
+      "expo-ios-popover-tip": ["../src/index"],
+      "expo-ios-popover-tip/*": ["../src/*"]
     }
   }
 }

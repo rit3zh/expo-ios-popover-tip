@@ -1,5 +1,5 @@
 {
-  "name": "expo-ios-tookit",
+  "name": "expo-ios-popover-tip",
   "version": "0.1.0",
   "description": " 🧊 SwiftUI-powered Popover Tips for React Native — beautiful, native tooltips using TipKit 💬⚡️",
   "main": "build/index.js",
@@ -18,7 +18,7 @@
   "keywords": [
     "react-native",
     "expo",
-    "expo-ios-tookit",
+    "expo-ios-popover-tip",
     "ExpoiOSToolKitModule"
   ],
   "repository": "https://github.com/rit3zh/expo-ios-tookit",
