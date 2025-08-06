@@ -1,0 +1,47 @@
+{
+  "git": {
+    "requireBranch": "main",
+    "commitMessage": "chore: release v${version}",
+    "tagName": "v${version}",
+    "tagAnnotation": "Release v${version}",
+    "push": true,
+    "pushTags": true
+  },
+  "github": {
+    "release": true,
+    "releaseName": "v${version}",
+    "draft": false,
+    "autoGenerate": true,
+    "preRelease": false
+  },
+  "npm": {
+    "publish": false
+  },
+  "plugins": {
+    "@release-it/conventional-changelog": {
+      "preset": {
+        "name": "conventionalcommits",
+        "types": [
+          { "type": "feat", "section": "✨ Features" },
+          { "type": "fix", "section": "🐛 Bug Fixes" },
+          { "type": "perf", "section": "⚡ Performance Improvements" },
+          { "type": "revert", "section": "⏪ Reverts" },
+          { "type": "docs", "section": "📚 Documentation" },
+          { "type": "style", "section": "💄 Styles" },
+          { "type": "refactor", "section": "♻️ Code Refactoring" },
+          { "type": "test", "section": "✅ Tests" },
+          { "type": "build", "section": "📦 Build System" },
+          { "type": "ci", "section": "👷 CI/CD" },
+          { "type": "chore", "section": "🔧 Chores" }
+        ]
+      },
+      "infile": "CHANGELOG.md",
+      "header": "# Changelog\n\nAll notable changes to this project will be documented in this file.\n\n"
+    }
+  },
+  "hooks": {
+    "before:init": "npm test",
+    "after:bump": "echo 'Version bumped to ${version}'",
+    "after:release": "echo 'Successfully released ${name} v${version}'"
+  }
+}

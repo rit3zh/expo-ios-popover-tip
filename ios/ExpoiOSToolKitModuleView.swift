@@ -9,7 +9,7 @@ struct DynamicTip: Tip, Identifiable {
   let messageText: Text?
   let imageView: Image?
   let rawActions: [[String: String]]?
-  let actionHandler: (@Sendable (String) -> Void)? // Custom handler
+  let actionHandler: (@Sendable (String) -> Void)?
     
   init(data: [String: Any], actionHandler: (@Sendable (String) -> Void)? = nil) {
     self.id = data["id"] as? String ?? UUID().uuidString
@@ -71,7 +71,6 @@ struct DynamicTip: Tip, Identifiable {
 struct ExpoToolKitView: ExpoSwiftUI.View, ExpoSwiftUI.WithHostingView {
   let props: ExpoToolKitProps
     
-    
   var body: some View {
     Group {
       if #available(iOS 17.0, *) {
@@ -87,14 +86,17 @@ struct ExpoToolKitView: ExpoSwiftUI.View, ExpoSwiftUI.WithHostingView {
 private struct TipContainerView: ExpoSwiftUIView {
   let props: ExpoToolKitProps
   @State private var currentTip: DynamicTip?
-  @State private var isTipPresented: Bool = true // track presentation state
+  @State private var isTipPresented: Bool = true
+  @State private var hasDispatched: Bool = false
+  @State private var tipKey = UUID()
 
   var body: some View {
     let eventDispatcher = props.onActionPress
     let tipEventDispatcher = props.onTipDismiss
     let tipId = props.tooltip["id"] as? String ?? ""
 
-    let tip = DynamicTip(data: props.tooltip) { actionId in
+    
+    let ios26Tip = DynamicTip(data: props.tooltip) { actionId in
       Task { @MainActor in
         currentTip?.invalidate(reason: .actionPerformed)
       }
@@ -113,25 +115,76 @@ private struct TipContainerView: ExpoSwiftUIView {
         "tipId": tipId
       ])
     }
-
-      if #available(iOS 26.0, *) {
-          Children()
-              .popoverTip(currentTip ?? tip, isPresented: $isTipPresented)
-              .onChange(of: isTipPresented) { newValue in
-                  if newValue == false {
-                      tipEventDispatcher([
-                        "event": "tipDismissed",
-                        "tipId": tipId
-                      ])
-                  }
-              }
-              .onAppear {
-                  currentTip = tip
-                  isTipPresented = true
-              }
-      } else {
-          // Fallback on earlier versions
+    
+    
+    let ios17Tip = DynamicTip(data: props.tooltip) { actionId in
+      
+      eventDispatcher([
+        "actionId": actionId,
+        "tipId": tipId
+      ])
+      
+      
+      Task { @MainActor in
+        currentTip?.invalidate(reason: .actionPerformed)
+        tipKey = UUID()
       }
+    }
+
+    if #available(iOS 26.0, *) {
+      
+      Children()
+        .popoverTip(currentTip ?? ios26Tip, isPresented: $isTipPresented)
+        .onChange(of: isTipPresented) { newValue in
+          if newValue == false {
+            tipEventDispatcher([
+              "event": "tipDismissed",
+              "tipId": tipId
+            ])
+          }
+        }
+        .onAppear {
+          currentTip = ios26Tip
+          isTipPresented = true
+        }
+    } else {
+      
+      Children()
+        .popoverTip(currentTip ?? ios17Tip)
+        .id(tipKey)
+        .onAppear {
+          
+          currentTip = ios17Tip
+          hasDispatched = false
+          
+          
+          Task {
+            for await status in ios17Tip.statusUpdates {
+              if case .invalidated(let reason) = status {
+                await MainActor.run {
+                  guard !hasDispatched else { return }
+                  hasDispatched = true
+                  if reason != .actionPerformed {
+                    tipEventDispatcher([
+                      "event": "tipDismissed",
+                      "tipId": tipId
+                    ])
+                  }
+                }
+                break
+              }
+            }
+          }
+        }
+        .onChange(of: props.tooltip["id"] as? String ?? "") { _ in
+          
+          Task { @MainActor in
+            currentTip?.invalidate(reason: .displayCountExceeded)
+            tipKey = UUID()
+            hasDispatched = false
+          }
+        }
+    }
   }
 }
 

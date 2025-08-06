@@ -5,6 +5,11 @@
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "scripts": {
+    "release": "release-it",
+    "release:patch": "release-it patch",
+    "release:minor": "release-it minor",
+    "release:major": "release-it major",
+    "release:dry": "release-it --dry-run",
     "build": "expo-module build",
     "clean": "expo-module clean",
     "lint": "expo-module lint",
@@ -28,12 +33,13 @@
   "author": "Ritesh. <119659853+rit3zh@users.noreply.github.com> (https://github.com/rit3zh)",
   "license": "MIT",
   "homepage": "https://github.com/rit3zh/expo-ios-tookit#readme",
-  "dependencies": {},
   "devDependencies": {
+    "@release-it/conventional-changelog": "^10.0.1",
     "@types/react": "~19.0.0",
-    "expo-module-scripts": "^4.1.9",
     "expo": "~53.0.0",
-    "react-native": "0.79.1"
+    "expo-module-scripts": "^4.1.9",
+    "react-native": "0.79.1",
+    "release-it": "^19.0.4"
   },
   "peerDependencies": {
     "expo": "*",
