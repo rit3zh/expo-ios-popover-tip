@@ -1,5 +1,8 @@
 import { ToolKitModule } from "../module/index";
 
-export async function configureTips() {
+/**
+ * Registers new tips for the session
+ */
+export async function configureTips(): Promise<void> {
   return await ToolKitModule.configureTips();
 }
