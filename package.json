@@ -26,13 +26,13 @@
     "expo-ios-popover-tip",
     "ExpoiOSToolKitModule"
   ],
-  "repository": "https://github.com/rit3zh/expo-ios-tookit",
+  "repository": "https://github.com/rit3zh/expo-ios-popover-tip",
   "bugs": {
-    "url": "https://github.com/rit3zh/expo-ios-tookit/issues"
+    "url": "https://github.com/rit3zh/expo-ios-popover-tip/issues"
   },
   "author": "Ritesh. <119659853+rit3zh@users.noreply.github.com> (https://github.com/rit3zh)",
   "license": "MIT",
-  "homepage": "https://github.com/rit3zh/expo-ios-tookit#readme",
+  "homepage": "https://github.com/rit3zh/expo-ios-popover-tip#readme",
   "devDependencies": {
     "@release-it/conventional-changelog": "^10.0.1",
     "@semantic-release/changelog": "^6.0.3",
