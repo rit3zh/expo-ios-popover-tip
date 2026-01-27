@@ -36,11 +36,15 @@
   "devDependencies": {
     "@release-it/conventional-changelog": "^10.0.1",
     "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^12.0.2",
+    "@semantic-release/npm": "^13.1.3",
     "@types/react": "~19.0.0",
     "expo": "~53.0.0",
     "expo-module-scripts": "^4.1.9",
     "react-native": "0.79.1",
-    "release-it": "^19.0.4"
+    "release-it": "^19.0.4",
+    "semantic-release": "^25.0.2"
   },
   "peerDependencies": {
     "expo": "*",
