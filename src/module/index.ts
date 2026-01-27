@@ -1,4 +1,9 @@
 import { requireNativeModule } from "expo";
 import { Module } from "../constants/index";
+import type { ToolKitNativeModuleProps } from "../types/index";
 
-export const ToolKitModule = requireNativeModule(Module.Name);
+const ToolKitModule = requireNativeModule<Required<ToolKitNativeModuleProps>>(
+  Module.Name,
+);
+
+export { ToolKitModule };

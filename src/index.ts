@@ -1,3 +1,3 @@
-export * from "./ToolKit";
-export * from "./functions/configure";
-export * from "./functions/resetTips";
+export type * from "./types";
+export * from "./view/index";
+export * from "./functions/index";

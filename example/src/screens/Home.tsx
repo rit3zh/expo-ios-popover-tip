@@ -2,36 +2,85 @@ import {
   Text,
   SafeAreaView,
   StyleSheet,
-  Appearance,
   View,
   TouchableOpacity,
   Dimensions,
-  TextInput,
-  PlatformColor,
+  Button,
 } from "react-native";
 import * as React from "react";
 import { SFSymbol, SymbolView } from "expo-symbols";
 import {
-  ToolTipPopoverView,
+  ToolTipView,
+  TipActionEvent,
+  TipDismissEvent,
   configureTips,
   resetTips,
 } from "expo-ios-popover-tip";
-import { AnimatedMeshGradient } from "expo-ios-mesh-gradient";
 
-Appearance.setColorScheme("dark");
+const { width: screenWidth } = Dimensions.get("window");
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
+type TipId = "help" | "notification" | "add_item";
+const TIPS_ORDER: TipId[] = ["help", "notification", "add_item"];
 
 export function Home() {
-  const tipQueue = [1, 2, 3, 4];
-  const [currentTipIndex, setCurrentTipIndex] = React.useState<number>(1);
+  const [visibleTip, setVisibleTip] = React.useState<TipId | null>(null);
+  const [tipsReady, setTipsReady] = React.useState(false);
 
-  function handleTipEvent(event: any) {
-    console.log(event);
-    const nextIndex = currentTipIndex + 1;
+  // Initialize TipKit ONCE on mount
+  React.useEffect(() => {
+    async function setup() {
+      await resetTips();
+      setTipsReady(true);
 
-    setCurrentTipIndex(nextIndex);
-  }
+      setTimeout(() => setVisibleTip("help"), 1000);
+    }
+    setup();
+  }, []);
+
+  // Move to next tip in sequence
+  const goToNextTip = React.useCallback((currentTipId: TipId) => {
+    const currentIndex = TIPS_ORDER.indexOf(currentTipId);
+    const nextTip = TIPS_ORDER[currentIndex + 1] ?? null;
+
+    setVisibleTip(null);
+    if (nextTip) {
+      setTimeout(() => setVisibleTip(nextTip), 300);
+    }
+  }, []);
+
+  // Handle action press
+  const handleActionPress = React.useCallback(
+    (tipId: TipId) => (event: TipActionEvent) => {
+      console.log("Action:", event.nativeEvent);
+      goToNextTip(tipId);
+    },
+    [goToNextTip],
+  );
+
+  // Handle tip dismiss
+  const handleTipDismiss = React.useCallback(
+    (tipId: TipId) => (event: TipDismissEvent) => {
+      console.log("Dismissed:", event.nativeEvent);
+
+      // If tip was already shown or not eligible, still move to next
+      goToNextTip(tipId);
+    },
+    [goToNextTip],
+  );
+
+  // Reset tips and start over (for testing)
+  const handleResetTips = React.useCallback(async () => {
+    setVisibleTip(null);
+
+    // Reset all tip state
+    await resetTips();
+
+    // Re-initialize
+    await configureTips();
+
+    // Start showing tips again
+    setTimeout(() => setVisibleTip("help"), 500);
+  }, []);
 
   const features = [
     {
@@ -60,438 +109,164 @@ export function Home() {
     },
   ];
 
-  const [tipsReady, setTipsReady] = React.useState(false);
-  React.useEffect(() => {
-    async function setup() {
-      await resetTips();
-      await configureTips();
-      setTimeout(() => setTipsReady(true), 500);
-    }
-    setup();
-  });
   if (!tipsReady) return null;
 
   return (
-    <AnimatedMeshGradient
-      colors={["#000000", "#111111", "#222222", "#2f2f2f", "#1c1c1c"]}
-      style={styles.gradient}
-      animated={true}
-      points={[
-        [0.0, 0.0],
-        [0.5, 0.0],
-        [1.0, 0.0],
-        [0.0, 0.5],
-        [0.5, 0.5],
-        [1.0, 0.5],
-        [0.0, 1.0],
-        [0.5, 1.0],
-        [1.0, 1.0],
-      ]}
-      animationSpeed={0.003_5}
-    >
-      <SafeAreaView style={styles.container}>
-        {/* Status Bar Area */}
-        {/* Header */}
-        <View style={styles.header}>
-          <ToolTipPopoverView
-            key={"help" + tipQueue[currentTipIndex]}
-            onTipDismiss={handleTipEvent}
-            tooltip={{
-              id: "help_tooltip",
-              title: {
-                text: "Need Help?",
-                bold: true,
-                size: 29,
-                foregroundColor: "#ffffff",
-              },
-              actions: [
-                {
-                  id: "open_help",
-                  title: "View Guide",
-                },
-                {
-                  id: "contact_support",
-                  title: "Contact Support",
-                },
-              ],
-              image: {
-                systemName: "questionmark.circle.fill",
-              },
-              description: {
-                text: "Tap here to access tutorials, FAQs, and support.",
-                bold: false,
-                size: 20,
-                foregroundColor: "#bbbbbb",
-              },
-            }}
-          >
-            <TouchableOpacity style={styles.helpButton}>
-              <SymbolView
-                name="questionmark.circle"
-                size={24}
-                type="hierarchical"
-                tintColor="#ffffff"
-              />
-            </TouchableOpacity>
-          </ToolTipPopoverView>
-          <ToolTipPopoverView
-            key={"noti" + tipQueue[currentTipIndex]}
-            tooltip={{
-              id: "notification",
-              title: {
-                text: "Notifications",
-                bold: false,
-                size: 20,
-                foregroundColor: "#ffff",
-              },
+    <SafeAreaView style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        {/* Help Button with Tip */}
+        <ToolTipView
+          isVisible={visibleTip === "help"}
+          onActionPress={handleActionPress("help")}
+          onTipDismiss={handleTipDismiss("help")}
+          tooltip={{
+            id: "help_tooltip",
+            title: { text: "Need Help?", bold: true },
+            description: { text: "Tap here for tutorials and support." },
+            image: { systemName: "questionmark.circle.fill" },
+            actions: [
+              { id: "view_guide", title: "View Guide" },
+              { id: "contact", title: "Contact Support" },
+            ],
+          }}
+        >
+          <TouchableOpacity style={styles.iconButton}>
+            <SymbolView name="questionmark.circle" size={24} tintColor="#fff" />
+          </TouchableOpacity>
+        </ToolTipView>
 
-              description: {
-                text: "You have 5 new notifications",
-                bold: false,
-                size: 18,
-                foregroundColor: "#ffff",
-              },
-            }}
-            onTipDismiss={handleTipEvent}
-          >
-            <TouchableOpacity style={styles.notificationButton}>
-              <SymbolView
-                name="bell.fill"
-                size={24}
-                type="hierarchical"
-                tintColor={PlatformColor("systemWhite")}
-              />
-              <View style={styles.notificationBadge}>
-                <Text style={styles.badgeText}>5</Text>
-              </View>
-            </TouchableOpacity>
-          </ToolTipPopoverView>
+        {/* Notification Button with Tip */}
+        <ToolTipView
+          isVisible={visibleTip === "notification"}
+          onActionPress={handleActionPress("notification")}
+          onTipDismiss={handleTipDismiss("notification")}
+          tooltip={{
+            id: "notification_tooltip",
+            title: { text: "Notifications" },
+            description: { text: "You have 5 new notifications" },
+          }}
+        >
+          <TouchableOpacity style={styles.iconButton}>
+            <SymbolView name="bell.fill" size={24} tintColor="#fff" />
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>5</Text>
+            </View>
+          </TouchableOpacity>
+        </ToolTipView>
+      </View>
+
+      {/* Main Content */}
+      <View style={styles.content}>
+        <Text style={styles.greeting}>Hi there,</Text>
+        <Text style={styles.subtitle}>How can I help you today?</Text>
+
+        {/* Reset Button - for testing */}
+        <View style={styles.resetButton}>
+          <Button title="Reset Tips & Show Again" onPress={handleResetTips} />
         </View>
 
-        {/* Main Content */}
-        <View style={styles.mainContent}>
-          {/* Greeting */}
-          <View style={styles.greetingSection}>
-            <Text style={styles.greetingLight}>Hi Rit3zh,</Text>
-            <Text style={styles.greetingBold}>How can I help you today?</Text>
-          </View>
-
-          {/* Feature Grid */}
-          <View style={styles.featuresGrid}>
-            {features.map((feature, index) => (
-              <TouchableOpacity
-                key={feature.id}
-                style={styles.featureCard}
-                activeOpacity={0.8}
-              >
-                <View style={styles.cardContent}>
-                  <View style={styles.iconContainer}>
-                    <SymbolView
-                      name={feature.icon as SFSymbol}
-                      size={32}
-                      type="hierarchical"
-                      tintColor="#ffffff"
-                    />
-                  </View>
-                  <Text style={styles.featureTitle}>{feature.title}</Text>
-                  <Text style={styles.featureDescription}>
-                    {feature.description}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* Search Bar */}
-          <View style={styles.searchContainer}>
-            <View style={styles.searchBar}>
+        {/* Features Grid */}
+        <View style={styles.grid}>
+          {features.map((feature) => (
+            <TouchableOpacity key={feature.id} style={styles.card}>
               <SymbolView
-                name="magnifyingglass"
-                size={20}
-                type="hierarchical"
-                tintColor="#666666"
-                style={styles.searchIcon}
+                name={feature.icon as SFSymbol}
+                size={32}
+                tintColor="#fff"
               />
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Search"
-                placeholderTextColor="#666666"
-              />
-              <TouchableOpacity style={styles.voiceButton}>
-                <SymbolView
-                  name="waveform"
-                  size={20}
-                  type="hierarchical"
-                  tintColor="#666666"
-                />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Bottom Action Bar */}
-          <View style={styles.bottomActionBar}>
-            <View style={styles.leftActions}>
-              <TouchableOpacity style={styles.actionButton}>
-                <View style={styles.actionButtonContent}>
-                  <SymbolView
-                    name="square.grid.3x3"
-                    size={24}
-                    type="hierarchical"
-                    tintColor="#ffffff"
-                  />
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.actionButton}>
-                <View style={styles.actionButtonContent}>
-                  <SymbolView
-                    name="person.circle"
-                    size={24}
-                    type="hierarchical"
-                    tintColor="#ffffff"
-                  />
-                </View>
-              </TouchableOpacity>
-            </View>
-            <ToolTipPopoverView
-              key={"add" + tipQueue[currentTipIndex]} // ✅ Use a unique, reactive key
-              tooltip={{
-                id: "add_item",
-                title: {
-                  text: "Add New Item",
-                  bold: true,
-                  size: 29,
-                  foregroundColor: "#ffffff",
-                },
-                actions: [
-                  {
-                    id: "add_action",
-                    title: "Add Now",
-                  },
-                ],
-                image: {
-                  systemName: "plus.circle.fill",
-                },
-                description: {
-                  text: "Quickly add a new task or note here.",
-                  bold: false,
-                  size: 20,
-                  foregroundColor: "#bbbbbb",
-                },
-              }}
-              onTipDismiss={handleTipEvent}
-            >
-              <View
-                // colors={["#333333", "#1a1a1a"]}
-                // type={LiquidGlassType.Clear}
-                style={styles.primaryActionButton}
-              >
-                <View
-                  style={{
-                    justifyContent: "center",
-                    alignItems: "center",
-                    flex: 1,
-                  }}
-                >
-                  <SymbolView
-                    name="plus"
-                    size={24}
-                    type="hierarchical"
-                    tintColor="#ffffff"
-                  />
-                </View>
-              </View>
-            </ToolTipPopoverView>
-          </View>
+              <Text style={styles.cardTitle}>{feature.title}</Text>
+              <Text style={styles.cardDesc}>{feature.description}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
-      </SafeAreaView>
-    </AnimatedMeshGradient>
+
+        {/* Bottom Actions */}
+        <View style={styles.bottomBar}>
+          <TouchableOpacity style={styles.iconButton}>
+            <SymbolView name="square.grid.3x3" size={24} tintColor="#fff" />
+          </TouchableOpacity>
+
+          {/* Add Button with Tip */}
+          <ToolTipView
+            isVisible={visibleTip === "add_item"}
+            onActionPress={handleActionPress("add_item")}
+            onTipDismiss={handleTipDismiss("add_item")}
+            tooltip={{
+              id: "add_tooltip",
+              title: { text: "Add New Item", bold: true },
+              description: { text: "Quickly add a new task or note." },
+              image: { systemName: "plus.circle.fill" },
+              actions: [{ id: "add_now", title: "Add Now" }],
+            }}
+          >
+            <TouchableOpacity style={styles.addButton}>
+              <SymbolView name="plus" size={24} tintColor="#fff" />
+            </TouchableOpacity>
+          </ToolTipView>
+        </View>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    // backgroundColor: "#000000",
-  },
-  gradient: {
-    flex: 1,
-  },
-  statusBar: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 5,
-  },
-  timeText: {
-    fontSize: 17,
-    fontWeight: "600",
-    color: "#ffffff",
-  },
-  statusIcons: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
+  container: { flex: 1, backgroundColor: "#000" },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 15,
   },
-  helpButton: {
+  iconButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
     backgroundColor: "#262626",
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#333333",
   },
-  notificationButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#262626",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#333333",
-    position: "relative",
-  },
-  notificationBadge: {
+  badge: {
     position: "absolute",
     top: -2,
     right: -2,
-    backgroundColor: PlatformColor("systemRed"),
+    backgroundColor: "red",
     borderRadius: 10,
     minWidth: 20,
     height: 20,
     justifyContent: "center",
     alignItems: "center",
   },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: "bold",
-    color: "#fff",
-  },
-  mainContent: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  greetingSection: {
-    marginBottom: 20,
-    top: 20,
-  },
-  greetingLight: {
-    fontSize: 42,
-    fontWeight: "600",
-    color: "#999999",
-    marginBottom: 0,
-  },
-  greetingBold: {
-    fontSize: 38,
-    fontWeight: "300",
-    color: "#ffffff",
-    lineHeight: 38,
-  },
-  featuresGrid: {
+  badgeText: { fontSize: 12, fontWeight: "bold", color: "#fff" },
+  content: { flex: 1, paddingHorizontal: 20 },
+  greeting: { fontSize: 42, fontWeight: "600", color: "#999", marginTop: 20 },
+  subtitle: { fontSize: 36, fontWeight: "300", color: "#fff" },
+  resetButton: { marginTop: 20 },
+  grid: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 16,
-    marginBottom: 20,
-    top: 50,
+    marginTop: 20,
   },
-  featureCard: {
+  card: {
     width: (screenWidth - 56) / 2,
     backgroundColor: "#1a1a1a",
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#333333",
-    overflow: "hidden",
-  },
-  cardContent: {
     padding: 20,
-    alignItems: "flex-start",
   },
-  iconContainer: {
-    marginBottom: 16,
-  },
-  featureTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#ffffff",
-    marginBottom: 6,
-  },
-  featureDescription: {
-    fontSize: 14,
-    color: "#999999",
-    lineHeight: 18,
-  },
-  searchContainer: {
-    marginBottom: 30,
-    height: Dimensions.get("window").height * 0.1_6_9,
-
-    justifyContent: "flex-end",
-    bottom: 10,
-  },
-  searchBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#1a1a1a",
-    borderRadius: 12,
-
-    borderWidth: 1,
-    borderColor: "#333333",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-
-    gap: 12,
-  },
-  searchIcon: {},
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: "#ffffff",
-  },
-  voiceButton: {
-    padding: 4,
-  },
-  bottomActionBar: {
+  cardTitle: { fontSize: 18, fontWeight: "600", color: "#fff", marginTop: 16 },
+  cardDesc: { fontSize: 14, color: "#999", marginTop: 4 },
+  bottomBar: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    marginTop: 30,
   },
-  leftActions: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  actionButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: "#1a1a1a",
-    borderWidth: 1,
-    borderColor: "#333333",
-    overflow: "hidden",
-  },
-  actionButtonContent: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  primaryActionButton: {
+  addButton: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    overflow: "hidden",
-  },
-  primaryActionGradient: {
-    flex: 1,
+    backgroundColor: "#333",
     justifyContent: "center",
     alignItems: "center",
   },

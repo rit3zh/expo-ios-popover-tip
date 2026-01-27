@@ -1,203 +1,302 @@
 import ExpoModulesCore
-import SwiftUI
+import UIKit
 import TipKit
+import SwiftUI
+
+@available(iOS 17.0, *)
+class TipStatusTracker {
+    static let shared = TipStatusTracker()
+    
+    private let userDefaultsKey = "expo_tipkit_shown_tips"
+    
+    private var shownTipIds: Set<String> {
+        get {
+            let array = UserDefaults.standard.stringArray(forKey: userDefaultsKey) ?? []
+            return Set(array)
+        }
+        set {
+            UserDefaults.standard.set(Array(newValue), forKey: userDefaultsKey)
+        }
+    }
+    
+    func markAsShown(_ tipId: String) {
+        var current = shownTipIds
+        current.insert(tipId)
+        shownTipIds = current
+    }
+    
+    func hasBeenShown(_ tipId: String) -> Bool {
+        return shownTipIds.contains(tipId)
+    }
+    
+    func reset() {
+        UserDefaults.standard.removeObject(forKey: userDefaultsKey)
+    }
+}
 
 @available(iOS 17.0, *)
 struct DynamicTip: Tip, Identifiable {
-  let id: String
-  let titleText: Text
-  let messageText: Text?
-  let imageView: Image?
-  let rawActions: [[String: String]]?
-  let actionHandler: (@Sendable (String) -> Void)?
+    let id: String
+    let titleText: String
+    let messageText: String?
+    let systemImageName: String?
+    let rawActions: [[String: String]]?
+    var actionHandler: (@Sendable (String) -> Void)?
     
-  init(data: [String: Any], actionHandler: (@Sendable (String) -> Void)? = nil) {
-    self.id = data["id"] as? String ?? UUID().uuidString
-    self.actionHandler = actionHandler
-      
-    if let title = data["title"] as? [String: Any],
-       let text = title["text"] as? String {
-      var t = Text(text)
-      if let bold = title["bold"] as? Bool, bold { t = t.fontWeight(.bold) }
-      if let size = title["size"] as? CGFloat { t = t.font(.system(size: size)) }
-      if let colorHex = title["foregroundColor"] as? String,
-         let color = Color(hex: colorHex) {
-        t = t.foregroundColor(color)
-      }
-      self.titleText = t
-    } else {
-      self.titleText = Text("")
-    }
-    
-    if let desc = data["description"] as? [String: Any],
-       let text = desc["text"] as? String {
-      var m = Text(text)
-      if let bold = desc["bold"] as? Bool, bold { m = m.bold() }
-      if let size = desc["size"] as? CGFloat { m = m.font(.system(size: size)) }
-      if let colorHex = desc["foregroundColor"] as? String,
-         let color = Color(hex: colorHex) {
-        m = m.foregroundColor(color)
-      }
-      self.messageText = m
-    } else {
-      self.messageText = nil
-    }
-    
-    if let img = data["image"] as? [String: Any],
-       let systemName = img["systemName"] as? String {
-      self.imageView = Image(systemName: systemName)
-    } else {
-      self.imageView = nil
-    }
-    
-    self.rawActions = data["actions"] as? [[String : String]]
-  }
-  
-  var title: Text { titleText }
-  var message: Text? { messageText }
-  var image: Image? { imageView }
-    
-  var actions: [Tip.Action] {
-    rawActions?.compactMap { item in
-      guard let id = item["id"],
-            let title = item["title"] else { return nil }
-      return Tip.Action(id: id, title: title) {
-        actionHandler?(id)
-      }
-    } ?? []
-  }
-}
-
-struct ExpoToolKitView: ExpoSwiftUI.View, ExpoSwiftUI.WithHostingView {
-  let props: ExpoToolKitProps
-    
-  var body: some View {
-    Group {
-      if #available(iOS 17.0, *) {
-        TipContainerView(props: props)
-      } else {
-        Text("Tips require iOS 17+")
-      }
-    }
-  }
-}
-
-@available(iOS 17.0, *)
-private struct TipContainerView: ExpoSwiftUIView {
-  let props: ExpoToolKitProps
-  @State private var currentTip: DynamicTip?
-  @State private var isTipPresented: Bool = true
-  @State private var hasDispatched: Bool = false
-  @State private var tipKey = UUID()
-
-  var body: some View {
-    let eventDispatcher = props.onActionPress
-    let tipEventDispatcher = props.onTipDismiss
-    let tipId = props.tooltip["id"] as? String ?? ""
-
-    
-    let ios26Tip = DynamicTip(data: props.tooltip) { actionId in
-      Task { @MainActor in
-        currentTip?.invalidate(reason: .actionPerformed)
-      }
-
-      DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-        currentTip = DynamicTip(data: props.tooltip, actionHandler: { id in
-          tipEventDispatcher([
-            "actionId": id,
-            "tipId": tipId
-          ])
-        })
-      }
-
-      eventDispatcher([
-        "actionId": actionId,
-        "tipId": tipId
-      ])
-    }
-    
-    
-    let ios17Tip = DynamicTip(data: props.tooltip) { actionId in
-      
-      eventDispatcher([
-        "actionId": actionId,
-        "tipId": tipId
-      ])
-      
-      
-      Task { @MainActor in
-        currentTip?.invalidate(reason: .actionPerformed)
-        tipKey = UUID()
-      }
-    }
-
-    if #available(iOS 26.0, *) {
-      
-      Children()
-        .popoverTip(currentTip ?? ios26Tip, isPresented: $isTipPresented)
-        .onChange(of: isTipPresented) { newValue in
-          if newValue == false {
-            tipEventDispatcher([
-              "event": "tipDismissed",
-              "tipId": tipId
-            ])
-          }
+    init(data: [String: Any], actionHandler: (@Sendable (String) -> Void)? = nil) {
+        self.id = data["id"] as? String ?? UUID().uuidString
+        self.actionHandler = actionHandler
+        
+        if let title = data["title"] as? [String: Any],
+           let text = title["text"] as? String {
+            self.titleText = text
+        } else {
+            self.titleText = ""
         }
-        .onAppear {
-          currentTip = ios26Tip
-          isTipPresented = true
+        
+        if let desc = data["description"] as? [String: Any],
+           let text = desc["text"] as? String {
+            self.messageText = text
+        } else {
+            self.messageText = nil
         }
-    } else {
-      
-      Children()
-        .popoverTip(currentTip ?? ios17Tip)
-        .id(tipKey)
-        .onAppear {
-          
-          currentTip = ios17Tip
-          hasDispatched = false
-          
-          
-          Task {
-            for await status in ios17Tip.statusUpdates {
-              if case .invalidated(let reason) = status {
-                await MainActor.run {
-                  guard !hasDispatched else { return }
-                  hasDispatched = true
-                  if reason != .actionPerformed {
-                    tipEventDispatcher([
-                      "event": "tipDismissed",
-                      "tipId": tipId
-                    ])
-                  }
-                }
-                break
-              }
+        
+        if let img = data["image"] as? [String: Any] {
+            self.systemImageName = img["systemName"] as? String
+        } else {
+            self.systemImageName = nil
+        }
+        
+        self.rawActions = data["actions"] as? [[String: String]]
+    }
+    
+    var title: Text {
+        Text(titleText)
+    }
+    
+    var message: Text? {
+        guard let msg = messageText else { return nil }
+        return Text(msg)
+    }
+    
+    var image: Image? {
+        guard let name = systemImageName else { return nil }
+        return Image(systemName: name)
+    }
+    
+    var actions: [Tip.Action] {
+        rawActions?.compactMap { item in
+            guard let actionId = item["id"],
+                  let actionTitle = item["title"] else { return nil }
+            return Tip.Action(id: actionId, title: actionTitle) {
+                actionHandler?(actionId)
+                self.invalidate(reason: .actionPerformed)
             }
-          }
-        }
-        .onChange(of: props.tooltip["id"] as? String ?? "") { _ in
-          
-          Task { @MainActor in
-            currentTip?.invalidate(reason: .displayCountExceeded)
-            tipKey = UUID()
-            hasDispatched = false
-          }
+        } ?? []
+    }
+}
+public final class ExpoToolKitView: ExpoView, UIPopoverPresentationControllerDelegate {
+    var tooltip: [String: Any] = [:] {
+        didSet {
+            handleTooltipChange()
         }
     }
-  }
-}
-
-extension Color {
-  init?(hex: String?) {
-    guard let hex = hex else { return nil }
-    var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)
-    hexSanitized = hexSanitized.replacingOccurrences(of: "#", with: "")
-    var rgb: UInt64 = 0
-    guard Scanner(string: hexSanitized).scanHexInt64(&rgb) else { return nil }
-    let r = Double((rgb >> 16) & 0xFF) / 255.0
-    let g = Double((rgb >> 8) & 0xFF) / 255.0
-    let b = Double(rgb & 0xFF) / 255.0
-    self.init(red: r, green: g, blue: b)
-  }
+    
+    var isVisible: Bool = false {
+        didSet {
+            handleVisibilityChange()
+        }
+    }
+    
+    let onActionPress = EventDispatcher()
+    let onTipDismiss = EventDispatcher()
+    private var childrenContainer: UIView!
+    private weak var presentedController: UIViewController?
+    private var currentTipId: String?
+    private var hasShownTip: Bool = false
+    private var observationTask: Task<Void, Never>?
+    
+    public required init(appContext: AppContext? = nil) {
+        super.init(appContext: appContext)
+        setupView()
+    }
+    
+    private func setupView() {
+        childrenContainer = UIView()
+        childrenContainer.backgroundColor = .clear
+        addSubview(childrenContainer)
+    }
+    
+    public override func layoutSubviews() {
+        super.layoutSubviews()
+        childrenContainer.frame = bounds
+        
+        for subview in childrenContainer.subviews {
+            subview.frame = childrenContainer.bounds
+        }
+    }
+    public override func mountChildComponentView(_ childComponentView: UIView, index: Int) {
+        childrenContainer.insertSubview(childComponentView, at: index)
+        setNeedsLayout()
+    }
+    
+    public override func unmountChildComponentView(_ childComponentView: UIView, index: Int) {
+        childComponentView.removeFromSuperview()
+    }
+    
+    private func handleTooltipChange() {
+        let newTipId = tooltip["id"] as? String ?? ""
+        
+        if newTipId != currentTipId {
+            currentTipId = newTipId
+            hasShownTip = false
+            dismissTipIfNeeded()
+        }
+    }
+    
+    private func handleVisibilityChange() {
+        if isVisible && !hasShownTip {
+            showTip()
+        } else if !isVisible {
+            dismissTipIfNeeded()
+            hasShownTip = false
+        }
+    }
+    private func showTip() {
+        guard #available(iOS 17.0, *) else { return }
+        guard presentedController == nil else { return }
+        guard let parentVC = findViewController() else { return }
+        
+        let tipId = tooltip["id"] as? String ?? ""
+        if TipStatusTracker.shared.hasBeenShown(tipId) {
+            onTipDismiss([
+                "event": "tipAlreadyShown",
+                "tipId": tipId,
+                "reason": "alreadyDisplayed"
+            ])
+            return
+        }
+        
+        let tip = DynamicTip(data: tooltip) { @Sendable [weak self] actionId in
+            DispatchQueue.main.async {
+                self?.handleActionPress(actionId: actionId, tipId: tipId)
+            }
+        }
+        
+        hasShownTip = true
+        TipStatusTracker.shared.markAsShown(tipId)
+        
+        let tipVC = TipUIPopoverViewController(tip, sourceItem: childrenContainer)
+        tipVC.modalPresentationStyle = .popover
+        
+        if let popover = tipVC.popoverPresentationController {
+            popover.sourceView = childrenContainer
+            popover.sourceRect = childrenContainer.bounds
+            popover.permittedArrowDirections = [.up, .down]
+            popover.delegate = self
+        }
+        
+        presentedController = tipVC
+        
+        // Observe tip status for close button / invalidation
+        observationTask?.cancel()
+        observationTask = Task { [weak self] in
+            for await status in tip.statusUpdates {
+                if case .invalidated(let reason) = status {
+                    await MainActor.run {
+                        self?.handleTipInvalidated(tipId: tipId, reason: reason)
+                    }
+                    break
+                }
+            }
+        }
+        
+        parentVC.present(tipVC, animated: true)
+    }
+    
+    private func dismissTipIfNeeded() {
+        observationTask?.cancel()
+        observationTask = nil
+        
+        if let controller = presentedController {
+            controller.dismiss(animated: true)
+            presentedController = nil
+        }
+    }
+    
+    @available(iOS 17.0, *)
+    private func handleTipInvalidated(tipId: String, reason: Tips.InvalidationReason) {
+        presentedController?.dismiss(animated: true)
+        presentedController = nil
+        observationTask?.cancel()
+        observationTask = nil
+        
+        let reasonString: String
+        switch reason {
+        case .actionPerformed:
+            reasonString = "actionPerformed"
+        case .displayCountExceeded:
+            reasonString = "displayCountExceeded"
+        case .tipClosed:
+            reasonString = "tipClosed"
+        case .displayDurationExceeded:
+            reasonString = "durationExceeded"
+        @unknown default:
+            reasonString = "unknown"
+        }
+        
+        onTipDismiss([
+            "event": "tipDismissed",
+            "tipId": tipId,
+            "reason": reasonString
+        ])
+    }
+    
+    private func handleActionPress(actionId: String, tipId: String) {
+        observationTask?.cancel()
+        observationTask = nil
+        presentedController?.dismiss(animated: true)
+        presentedController = nil
+        
+        onActionPress([
+            "actionId": actionId,
+            "tipId": tipId
+        ])
+        
+        onTipDismiss([
+            "event": "tipDismissed",
+            "tipId": tipId,
+            "reason": "actionPerformed"
+        ])
+    }
+    
+    private func findViewController() -> UIViewController? {
+        var responder: UIResponder? = self
+        while let next = responder?.next {
+            if let vc = next as? UIViewController { return vc }
+            responder = next
+        }
+        return nil
+    }
+    
+    public func adaptivePresentationStyle(for controller: UIPresentationController) -> UIModalPresentationStyle {
+        return .none
+    }
+    
+    public func adaptivePresentationStyle(for controller: UIPresentationController, traitCollection: UITraitCollection) -> UIModalPresentationStyle {
+        return .none
+    }
+    
+    public func presentationControllerDidDismiss(_ presentationController: UIPresentationController) {
+        observationTask?.cancel()
+        observationTask = nil
+        
+        let tipId = tooltip["id"] as? String ?? ""
+        onTipDismiss([
+            "event": "tipDismissed",
+            "tipId": tipId,
+            "reason": "userDismissed"
+        ])
+        presentedController = nil
+    }
 }
