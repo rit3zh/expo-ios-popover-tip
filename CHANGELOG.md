@@ -1,3 +1,11 @@
+# [0.2.0](https://github.com/rit3zh/expo-ios-popover-tip/compare/v0.1.6...v0.2.0) (2026-01-27)
+
+
+### Features
+
+* refactor ExpoiOSToolKitModule and tooltip system ([b67a553](https://github.com/rit3zh/expo-ios-popover-tip/commit/b67a553e900dfa280881bd4fb88bced98a49a4bd))
+* refactor ExpoiOSToolKitModule and tooltip system ([d851d1e](https://github.com/rit3zh/expo-ios-popover-tip/commit/d851d1ef5517dc192d8782b116082b6fb5f39a88))
+
 # 📋 Changelog
 
 All notable changes to this project will be documented in this file.
